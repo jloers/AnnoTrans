@@ -316,7 +316,15 @@ def createDatabaseImprovement(outPath, trdGFF_entries, imdGFF_entries, alignment
 			for function in trdGFF_entries[mapIMD_TRD[gff][0]].functions:
 				if function[0] not in allTags:
 					if function[0] not in ['Alternative sequence', 'Chain', 'Sequence conflict', 'Topological domain','Compositional bias', 'Natural variant']:
-						values = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[2], function)
+						if function[0] not in ['Disulfide bond']:
+							values = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[2], function)
+						else:
+							values1 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[1], function)
+							values2 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[2], function[2], function)
+							if values1 != None and values2 != None:
+								values = (values1[0], values2[0], values1[2]+'_'+values2[2])
+							else:
+								values = None							
 						if values != None:
 							outfile.write(gff+'\tUniProtKB'+'\t'+str(function[0])+'\t'+str(values[0])+'\t'+str(values[1])+'\t.\t.\t.\t'+function[3]+'|annoTrans:'+alignments_IMD_TRD[gff][1]+'_'+str(values[2])+'\n')
 							# count tags
@@ -402,7 +410,15 @@ def createNewDatabase(outPath, trdGFF_entries, alignments_POI_TRD, mapTRD_POI):
 				else:
 					tag_count['TRD'][function[0]]  = 1					
 				if function[0] not in ['Alternative sequence', 'Chain', 'Sequence conflict', 'Topological domain','Compositional bias', 'Natural variant']:
-					values = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[2], function)
+					if function[0] not in ['Disulfide bond']:
+						values = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[2], function)
+					else:
+						values1 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[1], function)
+						values2 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[2], function[2], function)
+						if values1 != None and values2 != None:
+							values = (values1[0], values2[0], values1[2]+'_'+values2[2])
+						else:
+							values = None	
 					if function[0] in tag_count['NWD_0']:
 						tag_count['NWD_0'][function[0]] += 1
 					else:
