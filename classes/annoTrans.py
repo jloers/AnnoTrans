@@ -88,8 +88,6 @@ def generateRBHs(fasta1, fasta2, tmpFolder):
 	dir_path = os.path.dirname(os.path.realpath(__file__))
 	print(dir_path)
 	p = subprocess.Popen('python '+dir_path+'/classes/RBH_BHH_identification.py --prefix '+tmpFolder+' --input1 '+fasta1+' --input2 '+fasta2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-	# os.popen('Terminal string')
-	
 	for stdout_line in iter(p.stdout.readline, ""):
 		print(stdout_line)
 	
@@ -199,76 +197,42 @@ def mergeSplit(inpath, outpath, nr_entries):
 		query		= ''
 		meta		= ''
 		subject		= ''
-		query_start 	= 1
-		subject_start	= 1
-		firstLineQuery       = True
-		firstLineSubjc       = True
-		
+
 		nextMeta 	= False
 		lengthMeta	= 0
-		
-		indentLength = 11
-		#print(lines[15])
-		if len(lines[15]) > 12:
-			if lines[15][11] == ' ':
-				indentLength += 1
-				if lines[15][12] == ' ':
-					indentLength += 1
-					if lines[15][13] == ' ':
-						indentLength += 1
-			#print(lines[15], indentLength)	
-		
-		for line in lines[15:]:
-			#print(line)
+		for line in lines[13:]:
 			if len(line.split(' ')) == 0:
 				nextMeta = False
 				continue
 			if nextMeta == True:
-				meta		+= line[indentLength:lengthMeta+12]
+				meta		+= line[12:lengthMeta+12]
 				nextMeta = False
 			if line[0:5] == 'Query':
-				query 		 += line[indentLength:].split('  ')[0]
+				query 		 += line[12:].split('  ')[0]
 				nextMeta 	 = True
-				lengthMeta = len(line[indentLength:].split('  ')[0])
-				if firstLineQuery == True:
-					firstLineQuery = False
-					query_start = getStart(line[:14])					
+				lengthMeta = len(line[12:].split('  ')[0])
 			if line[0:5] == 'Sbjct':
-				subject		 += line[indentLength:].split('  ')[0]
+				subject		 += line[12:].split('  ')[0]
 				nextMeta 	 = False
-				if firstLineSubjc == True:
-					firstLineSubjc = False
-					subject_start = getStart(line[:14])
-						
 		outfile.write('>\n')
 		outfile.write(queryID+'\n')
 		outfile.write(subjectID+'\n')
 		outfile.write(info+'\n')
 		outfile.write(query+'\n')
 		outfile.write(meta+'\n')
-		outfile.write(subject+'\n')
-		outfile.write(subject+'\n')
-		outfile.write(str(query_start)+'\n')
-		outfile.write(str(subject_start)+'\n')
-		allAlignments[queryID] = [queryID, subjectID, info, query, meta, subject, str(query_start), str(subject_start)]
-		
+		outfile.write(subject+'\n')	
+		allAlignments[queryID] = [queryID, subjectID, info, query, meta, subject]
+
 	return 	allAlignments		
 
-def checkAnnotationQualitiy(seq1, seq2, meta, start, end, startAln, start2Aln, function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv):
+def checkAnnotationQualitiy(seq1, seq2, meta, start, end, function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv):
 	'''
 	Function to obtain alignment quality
 	Important TODO: Deal with Disulphide-Bonds
 	'''
-#	print(seq1)
-#	print(seq2)
-#	print(meta)
-#	print(start, end)
-#	print(startAln, start2Aln)
-#	print(function)
-	
-	start_new = start-startAln+1
-	end_new   = end-startAln+1
-	#print('start_before-adaption', start_new, end_new)	
+	start_new = start
+	end_new   = end
+		
 	# adapt start position of annotation
 	gaps = seq2[:start].count('-')
 	start_new += gaps
@@ -288,12 +252,9 @@ def checkAnnotationQualitiy(seq1, seq2, meta, start, end, startAln, start2Aln, f
 				end_new += 1
 		except:
 			continue
-	#print('start_after-adaption',start_new, end_new)	
+
 	region = meta[start_new-1:end_new]
-	if len(region) <1 or start_new < 1:
-		return
-	#print(region)
-	
+		
 	if len(region) > 0:
 		positives 		= (len(region)-region.count(' '))/len(region)
 		idents	  		= (len(region)-region.count(' ')-region.count('+'))/len(region)
@@ -304,9 +265,9 @@ def checkAnnotationQualitiy(seq1, seq2, meta, start, end, startAln, start2Aln, f
 
 		# get position of reference:
 		gaps = seq1[:start_new].count('-')
-		start_ref = start_new-gaps+start2Aln-1
+		start_ref = start_new-gaps
 		gaps = seq1[:end_new].count('-')
-		end_ref = end_new-gaps+start2Aln-1
+		end_ref = end_new-gaps
 		
 		if end_ref-start_ref == 0:
 			add = sizeOfEnvironment
@@ -328,20 +289,17 @@ def checkAnnotationQualitiy(seq1, seq2, meta, start, end, startAln, start2Aln, f
 				idents_environment2 		 = (len(region3)-region3.count(' ')-region3.count('+'))/len(region3)
 			except:
 				positives_environment2 = 0
-				idents_environment2	  = 0
-	
+				idents_environment2	  = 0	
 						
 		if positives >= amountOfPositivesAll:
 			if end_ref-start_ref == 0:
 				if idents == 1 and idents_environment >= amountOfPositivesEnv:
 					#if function[0] == 'Active site':
 					#	print(region2, region2.count(' '))
-					#return(start_ref, end_ref, quality)
 					return(start_ref, end_ref, quality)
 			else:
 				#if function[0] == 'Domain':
 				#	print(positives)
-				#return(start_ref, end_ref, quality)
 				return(start_ref, end_ref, quality)
 
 def checkAnnotationQualitiy3(seq1, seq2, meta, start, end, function):
@@ -412,9 +370,6 @@ def createDatabaseImprovement(outPath, trdGFF_entries, imdGFF_entries, alignment
 		gene_nr['IMD_0'] += 1
 		outfile.write('##sequence-region '+gff+' '+str(imdGFF_entries[gff].amino_acids[0])+' '+str(imdGFF_entries[gff].amino_acids[1])+'\n')
 		if gff in alignments_IMD_TRD:
-			#print(alignments_IMD_TRD[gff])
-			#print(int(alignments_IMD_TRD[gff][-2]), int(alignments_IMD_TRD[gff][-3]))
-			#exit()
 			gene_nr['IMD_2'] += 1
 			counter += 1
 			allTags = {}
@@ -435,19 +390,14 @@ def createDatabaseImprovement(outPath, trdGFF_entries, imdGFF_entries, alignment
 				else:
 					tag_count['IMD_0'][function[0]]  = 1					
 			# check whether something from TRD can be Transfered to IMD
-			
 			for function in trdGFF_entries[mapIMD_TRD[gff][0]].functions:
 				if function[0] not in allTags:
 					if function[0] not in ['Alternative sequence', 'Chain', 'Sequence conflict', 'Topological domain','Compositional bias', 'Natural variant']:
-						print(gff, alignments_IMD_TRD[gff][1])
 						if function[0] not in ['Disulfide bond']:
-							#values = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[2], int(alignments_IMD_TRD[gff][-2]), int(alignments_IMD_TRD[gff][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-							values = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[2], int(alignments_IMD_TRD[gff][-1]), int(alignments_IMD_TRD[gff][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+							values = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[2], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
 						else:
-							#values1 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[1], int(alignments_IMD_TRD[gff][-2]), int(alignments_IMD_TRD[gff][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-							values1 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[1], int(alignments_IMD_TRD[gff][-1]), int(alignments_IMD_TRD[gff][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-							#values2 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[2], function[2], int(alignments_IMD_TRD[gff][-2]), int(alignments_IMD_TRD[gff][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-							values2 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[2], function[2], int(alignments_IMD_TRD[gff][-1]), int(alignments_IMD_TRD[gff][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+							values1 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[1], function[1], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+							values2 = checkAnnotationQualitiy(alignments_IMD_TRD[gff][3], alignments_IMD_TRD[gff][5], alignments_IMD_TRD[gff][4], function[2], function[2], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
 							if values1 != None and values2 != None:
 								values = (values1[0], values2[0], values1[2]+'_'+values2[2])
 							else:
@@ -520,7 +470,7 @@ def createNewDatabase(outPath, trdGFF_entries, alignments_POI_TRD, mapTRD_POI, s
 	tag_count = {'TRD':{}, 'NWD_0':{}, 'NWD_1':{}}
 	
 	outfile 		= open(outPath+'NWD.gff', 'w') 
-	outfile.write('##gff-version 3'+'\n')
+	outfile.write('##gff-version 3'+'\n')	
 	for gff in trdGFF_entries:
 		existingEntry = False
 		try:
@@ -541,14 +491,10 @@ def createNewDatabase(outPath, trdGFF_entries, alignments_POI_TRD, mapTRD_POI, s
 					tag_count['TRD'][function[0]]  = 1					
 				if function[0] not in ['Alternative sequence', 'Chain', 'Sequence conflict', 'Topological domain','Compositional bias', 'Natural variant']:
 					if function[0] not in ['Disulfide bond']:
-			#			values = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[2],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-						#print(alignments_POI_TRD[mapTRD_POI[gff][0]])
-						values = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[2],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-1]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+						values = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[2], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
 					else:
-			#			values1 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[1],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-						values1 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[1],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-1]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-			#			values2 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[2], function[2],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-3]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-						values2 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[2], function[2],int(alignments_POI_TRD[mapTRD_POI[gff][0]][-1]), int(alignments_POI_TRD[mapTRD_POI[gff][0]][-2]), function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+						values1 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[1], function[1], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+						values2 = checkAnnotationQualitiy(alignments_POI_TRD[mapTRD_POI[gff][0]][3], alignments_POI_TRD[mapTRD_POI[gff][0]][5], alignments_POI_TRD[mapTRD_POI[gff][0]][4], function[2], function[2], function, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
 						if values1 != None and values2 != None:
 							values = (values1[0], values2[0], values1[2]+'_'+values2[2])
 						else:
@@ -584,9 +530,9 @@ def statistics(outPath, counts):
 	outfile.write('NWD_Non: Entries which did not pass quality filter for NWD\n\n')
 
 	outfile.write('subset\tgene_count\n')
-	for i in counts[0]:
-		outfile.write(i+'\t'+str(counts[0][i])+'\n' )
-	outfile.write('NWD_Non\t'+ str(counts[0]['TRD']-counts[0]['IMD_1']-counts[0]['NWD'])+'\n\n')
+	#for i in counts[0]:
+	#	outfile.write(i+'\t'+str(counts[0][i])+'\n' )
+	#outfile.write('NWD_Non\t'+ str(counts[0]['TRD']-counts[0]['IMD_1']-counts[0]['NWD'])+'\n\n')
 
 	outfile.write('Tags per subset:\n')
 	allTags = {}
@@ -639,17 +585,7 @@ def getMaxOverlap(function, targets):
 		return 	maxOverlapSites_function/float((function[2]-function[1])), maxOverlapSites_function/float(length_of_target)#, maxOverlapSites_target
 	except:
 		return 	maxOverlapSites_function/float(1+(function[2]-function[1])), maxOverlapSites_function/float(1+length_of_target)#, maxOverlapSites_target
-
-def getStart(line):
-	number = 0
-	tmp = line.split(' ')
-	for i in tmp:
-		try:
-			return int(i)
-		except:
-			continue
-	return number
-				
+		
 def compareToGoldStandard(outpath, gff_ref, gff_new, mapPOI_TRD, mapTRD_POI):
 	'''
 	Function to compare a new dabase with a gold standard. Be careful with interpretation, gold standards are rare
@@ -666,7 +602,7 @@ def compareToGoldStandard(outpath, gff_ref, gff_new, mapPOI_TRD, mapTRD_POI):
 	c1 = 0
 	c2 = 0
 
-	for tag_sample in [['Domain'], ['Motif'],  ['Transit peptide','Peptide','Signal peptide','Propeptide'], ['Region'], ['Transmembrane', 'Intramembrane'],['DNA binding', 'Zinc finger'],['Active site', 'Binding site','Site', 'Metal binding', 'Calcium binding', 'Modified residue','Lipidation','Glycosylation'],['Turn', 'Helix', 'Beta strand'] ]:
+	for tag_sample in [['Domain'], ['Motif'],  ['Transit peptide','Peptide','Signal peptide','Propeptide'], ['Region'], ['Transmembrane', 'Intramembrane'],['DNA binding', 'Zinc finger'],['Active site', 'Binding site','Site', 'Metal binding', 'Calcium binding', 'Modified residue','Lipidation','Glycosylation'],['Turn', 'Helix', 'Beta strand'] , ]:
 	
 		#print(tag_sample)
 		#for functions:		
@@ -675,8 +611,6 @@ def compareToGoldStandard(outpath, gff_ref, gff_new, mapPOI_TRD, mapTRD_POI):
 			overlaps_new   = []
 			overlaps_ref   = []
 			functions_count = 0
-			g80	= 0
-			l80 = 0
 			for i in gff_new:
 				functions_new 	= []
 				functions_ref 	= []				
@@ -697,14 +631,9 @@ def compareToGoldStandard(outpath, gff_ref, gff_new, mapPOI_TRD, mapTRD_POI):
 						max_overlap = getMaxOverlap(function, functions_ref)
 						overlaps_new.append(max_overlap[0])
 						overlaps_ref.append(max_overlap[1])
-						if max_overlap[0] > 0.8:
-							g80 += 1
-						else:
-							l80 += 1
 
-			#print(tag_sample, functions_count, sum(overlaps_new)/len(overlaps_new), sum(overlaps_ref)/len(overlaps_ref), g80, g80/(l80+float(g80)) )
-			print(str(functions_count)+'\t'+str(sum(overlaps_new)/len(overlaps_new))+'\t'+str(sum(overlaps_ref)/len(overlaps_ref))+'\t'+str(g80)+'\t'+str(g80/(l80+float(g80))) )
-
+			#print(sum(overlaps_new)/len(overlaps_new), functions_count)
+			#print(sum(overlaps_ref)/len(overlaps_ref))
 		else:
 			functions_new = []
 			functions_ref = []
@@ -729,26 +658,18 @@ def compareToGoldStandard(outpath, gff_ref, gff_new, mapPOI_TRD, mapTRD_POI):
 						if function[0] in tag_sample:
 							functions_new.append([function[0], function[1], function[2]])		
 				tp_local = 0
-		#		print(i)
-		#		print('New', functions_new)
-		#		print('REF', functions_ref)
-			#	if len(functions_new) == 0 or len(functions_ref) == 0:
-			#		continue
-			#	if abs(len(functions_new)-len(functions_ref)) > 1:
-			#		continue 
-				
 				for function in functions_new:
 					if function in functions_ref:
 						TP_sites += 1
 						tp_local += 1
 					else:
 						FP_sites += 1
-					FN_sites += (len(functions_ref)-tp_local)	
-			print(str(TP_sites)+'\t'+str(FP_sites)+'\t'+str(FN_sites)+'\t'+str(TP_sites/(TP_sites+FP_sites))+'\t'+str(TP_sites/(TP_sites+FN_sites)))
-		#	try:
-		#		print(TP_sites, TP_sites+FP_sites, TP_sites/(TP_sites+FP_sites))
-		#	except:
-		#		print(TP_sites, TP_sites+FP_sites, 0)
+					FN_sites += (len(functions_ref)-tp_local)		
+			#print(TP_sites, FP_sites, FN_sites, TP_sites/(TP_sites+FP_sites), TP_sites/(TP_sites+FN_sites))
+			try:
+				print(TP_sites, TP_sites+FP_sites, TP_sites/(TP_sites+FP_sites))
+			except:
+				print(TP_sites, TP_sites+FP_sites, 0)
 							
 if __name__ == '__main__':
 	'''
@@ -785,7 +706,7 @@ if __name__ == '__main__':
 	trdFAS					= None
 	imdFAS					= None
 	sAnFAS					= None
-	sizeOfEnvironment 		= 2
+	sizeOfEnvironment 		= 5
 	amountOfPositivesAll	= 0.8
 	amountOfPositivesEnv	= 0.8
 	
@@ -820,8 +741,8 @@ if __name__ == '__main__':
 	
 	# create (transitive) mapping
 	mapPOI_TRD 				= getRBHs(outPath+'/POIvsTRD/RBH_file.txt')
-	mapPOI_IMD 				= getRBHs(outPath+'/POIvsIMD/RBH_file.txt')
-	mapIMD_TRD, mapTRD_IMD	= transitiveMapping(mapPOI_TRD, mapPOI_IMD)
+	#mapPOI_IMD 				= getRBHs(outPath+'/POIvsIMD/RBH_file.txt')
+	#mapIMD_TRD, mapTRD_IMD	= transitiveMapping(mapPOI_TRD, mapPOI_IMD)
 	mapTRD_POI				= reverseMapping(mapPOI_TRD)
 
 	### 2. do pairwise alignments to obtain blast meta information in a parsable way ###
@@ -829,35 +750,34 @@ if __name__ == '__main__':
 	## split up fasta files
 	
 	# IMD vs TRD
-	nr_entries_IMD_TRD = splitFastaFilesPairwise(load_multiple_fasta_file(imdFAS, 'uniprot'), load_multiple_fasta_file(trdFAS, 'uniprot'), mapIMD_TRD, outPath+'/IMD_TRD_SPLIT/')
-#	# POI vs TRD
-	nr_entries_POI_TRD = splitFastaFilesPairwise(load_multiple_fasta_file(sAnFAS, 'annotation'), load_multiple_fasta_file(trdFAS, 'uniprot'), mapPOI_TRD, outPath+'/POI_TRD_SPLIT/')
+	#nr_entries_IMD_TRD = splitFastaFilesPairwise(load_multiple_fasta_file(imdFAS, 'uniprot'), load_multiple_fasta_file(trdFAS, 'uniprot'), mapIMD_TRD, outPath+'/IMD_TRD_SPLIT/')
+	# POI vs TRD
+	#nr_entries_POI_TRD = splitFastaFilesPairwise(load_multiple_fasta_file(sAnFAS, 'annotation'), load_multiple_fasta_file(trdFAS, 'uniprot'), mapPOI_TRD, outPath+'/POI_TRD_SPLIT/')
 
-#	print(nr_entries_IMD_TRD, nr_entries_POI_TRD)
+	#print(nr_entries_IMD_TRD, nr_entries_POI_TRD)
 	#print(nr_entries_POI_TRD)
 	#nr_entries_IMD_TRD = 20267	#
-	#nr_entries_POI_TRD = 40340 #8727#3789#40340
+	nr_entries_POI_TRD = 8727#3789#40340
 	# start BLAST for IMD vs TRD
 	#generateAlignments(outPath+'/IMD_TRD_SPLIT/', outPath+'/IMD_TRD_SPLIT/Alignments/', nr_entries_IMD_TRD, 50)
 	#generateAlignments(outPath+'/POI_TRD_SPLIT/', outPath+'/POI_TRD_SPLIT/Alignments/', nr_entries_POI_TRD, 50)
 	
 	# merge blast alignment results
-	alignments_IMD_TRD = mergeSplit(outPath+'/IMD_TRD_SPLIT/Alignments/', outPath+'alignments_IMD_TRD.aln' , nr_entries_IMD_TRD)
-	alignments_POI_TRD = mergeSplit(outPath+'/POI_TRD_SPLIT/Alignments/', outPath+'alignments_POI_TRD.aln' , nr_entries_POI_TRD)
+	#alignments_IMD_TRD = mergeSplit(outPath+'/IMD_TRD_SPLIT/Alignments/', outPath+'alignments_IMD_TRD.aln' , nr_entries_IMD_TRD)
+	#alignments_POI_TRD = mergeSplit(outPath+'/POI_TRD_SPLIT/Alignments/', outPath+'alignments_POI_TRD.aln' , nr_entries_POI_TRD)
 	
-#	alignments_IMD_TRD = loadAlignment(outPath+'alignments_IMD_TRD.aln')
-#	alignments_POI_TRD = loadAlignment(outPath+'alignments_POI_TRD.aln')
+	#alignments_IMD_TRD = loadAlignment(outPath+'alignments_IMD_TRD.aln')
+	alignments_POI_TRD = loadAlignment(outPath+'alignments_POI_TRD.aln')
 	
 	### 3. Transfer annotation and output new databases in gff format
 	trdGFF_entries	=	loadUniprotGFF(trdGFF)
-	imdGFF_entries	=	loadUniprotGFF(imdGFF)
+	#imdGFF_entries	=	loadUniprotGFF(imdGFF)
 
-	counts = createDatabaseImprovement(outPath, trdGFF_entries, imdGFF_entries, alignments_IMD_TRD, alignments_POI_TRD, mapIMD_TRD, mapTRD_POI, mapTRD_IMD, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
-#	counts = createNewDatabase(outPath, trdGFF_entries, alignments_POI_TRD, mapTRD_POI, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+	#counts = createDatabaseImprovement(outPath, trdGFF_entries, imdGFF_entries, alignments_IMD_TRD, alignments_POI_TRD, mapIMD_TRD, mapTRD_POI, mapTRD_IMD, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
+	counts = createNewDatabase(outPath, trdGFF_entries, alignments_POI_TRD, mapTRD_POI, sizeOfEnvironment, amountOfPositivesAll, amountOfPositivesEnv)
 	### 4. create file with counts and statistics about the annotation process
-	statistics(outPath, counts)
+	#statistics(outPath, counts)
 	#print(amountOfPositivesEnv)
 	### 5. evaluation with gold standard
 	#compareToGoldStandard(outPath, loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_1/data/rice.gff'), loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_1/NWD.gff'), mapPOI_TRD, mapTRD_POI)
-	#compareToGoldStandard(outPath, loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_2/data/arabidopsis-uniprot.gff'), loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_2/NWD.gff'), mapPOI_TRD, mapTRD_POI)
-#	compareToGoldStandard(outPath, loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_2/data/arabidopsis-uniprot.gff'), loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evaluation_3/NWD.gff'), mapPOI_TRD, mapTRD_POI)
+	compareToGoldStandard(outPath, loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_2/data/arabidopsis-uniprot.gff'), loadUniprotGFF('/vol/cluster-data/jloers/annoTrans/evalutation_2/NWD.gff'), mapPOI_TRD, mapTRD_POI)
